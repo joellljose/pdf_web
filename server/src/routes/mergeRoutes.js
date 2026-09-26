@@ -1,6 +1,7 @@
 import express from 'express';
 import multer from 'multer';
 import { MergeController } from '../controllers/mergeController.js';
+import { SplitController } from '../controllers/splitController.js';
 
 const router = express.Router();
 
@@ -23,6 +24,9 @@ const upload = multer({
 
 // Merging endpoint
 router.post('/merge', upload.array('files', 40), MergeController.merge);
+
+// Splitting endpoint
+router.post('/split', upload.single('file'), SplitController.split);
 
 // Info endpoint for single file
 router.post('/info', upload.single('file'), MergeController.getInfo);

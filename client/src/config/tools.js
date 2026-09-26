@@ -27,13 +27,13 @@ export const TOOLS = [
   {
     id: 'split-pdf',
     title: 'Split PDF',
-    badge: 'Coming Soon',
-    badgeType: 'coming-soon',
+    badge: 'Active',
+    badgeType: 'active',
     iconName: 'Scissors',
     accentColor: '#ec4899',
     description: 'Separate one page or a whole set for easy conversion into independent PDF files.',
     category: 'organize',
-    isAvailable: false,
+    isAvailable: true,
     highlight: 'Range & single-page extraction'
   },
   {
