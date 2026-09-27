@@ -35,7 +35,9 @@ export function App() {
       {/* Main Navigation Header */}
       <Header 
         activeTool={activeTool} 
+        onSelectTool={(toolId) => setActiveTool(toolId)}
         onNavigateDashboard={() => setActiveTool(null)} 
+        onShowToast={showToast}
       />
 
       {/* Main Content Area */}

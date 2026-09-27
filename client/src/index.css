@@ -261,6 +261,81 @@ html, body {
   font-weight: 600;
 }
 
+/* Quick Feature Navbar (Direct Access Without Scrolling) */
+.header-feature-nav {
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(8, 12, 24, 0.65);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  padding: 0.35rem 0;
+}
+
+.header-feature-nav-inner {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  overflow-x: auto;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
+}
+
+.header-feature-nav-inner::-webkit-scrollbar {
+  display: none; /* Chrome/Safari */
+}
+
+.nav-feature-pill {
+  background: transparent;
+  border: 1px solid transparent;
+  color: #94a3b8;
+  padding: 0.32rem 0.75rem;
+  border-radius: 8px;
+  font-family: var(--font-sans);
+  font-size: 0.785rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  white-space: nowrap;
+  transition: all var(--trans-fast);
+  flex-shrink: 0;
+  user-select: none;
+}
+
+.nav-feature-pill:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+.nav-feature-pill.active {
+  background: rgba(99, 102, 241, 0.16);
+  border-color: rgba(99, 102, 241, 0.4);
+  color: #fff;
+  box-shadow: 0 0 14px rgba(99, 102, 241, 0.22);
+}
+
+.nav-feature-icon {
+  flex-shrink: 0;
+  transition: transform var(--trans-fast);
+}
+
+.nav-feature-pill:hover .nav-feature-icon {
+  transform: scale(1.15);
+}
+
+.nav-feature-divider {
+  width: 1px;
+  height: 16px;
+  background: rgba(255, 255, 255, 0.1);
+  margin: 0 0.2rem;
+  flex-shrink: 0;
+}
+
 /* ==========================================================================
    Dashboard / Tool Hub
    ========================================================================== */
