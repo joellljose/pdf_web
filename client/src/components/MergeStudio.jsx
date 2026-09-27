@@ -1,8 +1,8 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   Upload, FileText, ArrowLeft, Trash2, ArrowUp, ArrowDown, 
   Plus, Check, Download, ExternalLink, RefreshCw, FileCheck, 
-  GripVertical, Copy, ArrowUpDown, Shield, AlertTriangle 
+  GripVertical, Copy, ArrowUpDown, Shield, AlertTriangle, Eye, X 
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
@@ -14,6 +14,7 @@ export function MergeStudio({ onBackToDashboard, onShowToast }) {
   const [progressStage, setProgressStage] = useState(0); // 0: upload, 1: merge, 2: finalize
   const [progressPercent, setProgressPercent] = useState(0);
   const [mergeResult, setMergeResult] = useState(null); // { blobUrl, filename, size, totalPages, fileCount }
+  const [viewingFile, setViewingFile] = useState(null); // { name, size, pageCount, blobUrl }
 
   // Drag and drop reordering states
   const [draggedIndex, setDraggedIndex] = useState(null);
@@ -21,6 +22,42 @@ export function MergeStudio({ onBackToDashboard, onShowToast }) {
 
   const fileInputRef = useRef(null);
   const appendFileInputRef = useRef(null);
+
+  // Close viewer and revoke blob url on escape key or cleanup
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && viewingFile) {
+        handleCloseViewer();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [viewingFile]);
+
+  const handleViewPdf = (fileObj) => {
+    try {
+      const url = URL.createObjectURL(fileObj.rawFile);
+      setViewingFile({
+        name: fileObj.name,
+        size: fileObj.size,
+        pageCount: fileObj.pageCount,
+        blobUrl: url
+      });
+    } catch (err) {
+      console.error(err);
+      onShowToast({
+        type: 'error',
+        message: 'Unable to open preview for this file.'
+      });
+    }
+  };
+
+  const handleCloseViewer = () => {
+    if (viewingFile?.blobUrl) {
+      URL.revokeObjectURL(viewingFile.blobUrl);
+    }
+    setViewingFile(null);
+  };
 
   // Format bytes to KB / MB
   const formatBytes = (bytes, decimals = 1) => {
@@ -545,6 +582,17 @@ export function MergeStudio({ onBackToDashboard, onShowToast }) {
 
                   <div className="file-row-actions">
                     <button
+                      type="button"
+                      className="icon-btn view-btn"
+                      onClick={() => handleViewPdf(file)}
+                      title="View PDF"
+                      aria-label="View this PDF file"
+                    >
+                      <Eye size={15} />
+                    </button>
+
+                    <button
+                      type="button"
                       className="icon-btn"
                       disabled={index === 0}
                       onClick={() => moveFile(index, index - 1)}
@@ -555,6 +603,7 @@ export function MergeStudio({ onBackToDashboard, onShowToast }) {
                     </button>
 
                     <button
+                      type="button"
                       className="icon-btn"
                       disabled={index === files.length - 1}
                       onClick={() => moveFile(index, index + 1)}
@@ -565,6 +614,7 @@ export function MergeStudio({ onBackToDashboard, onShowToast }) {
                     </button>
 
                     <button
+                      type="button"
                       className="icon-btn"
                       onClick={() => duplicateFile(index)}
                       title="Duplicate File"
@@ -574,6 +624,7 @@ export function MergeStudio({ onBackToDashboard, onShowToast }) {
                     </button>
 
                     <button
+                      type="button"
                       className="icon-btn delete-btn"
                       onClick={() => removeFile(index)}
                       title="Remove File"
@@ -646,6 +697,64 @@ export function MergeStudio({ onBackToDashboard, onShowToast }) {
             <span style={{ fontSize: '0.8rem', color: '#64748b' }}>
               Processed in secure volatile RAM • Zero permanent storage
             </span>
+          </div>
+        </div>
+      )}
+
+      {/* PDF DOCUMENT PREVIEW MODAL */}
+      {viewingFile && (
+        <div className="modal-backdrop" onClick={handleCloseViewer} style={{ zIndex: 200 }}>
+          <div className="pdf-preview-modal-card" onClick={(e) => e.stopPropagation()}>
+            <div className="pdf-preview-modal-header">
+              <div className="pdf-preview-header-left">
+                <div className="file-icon-box" style={{ width: 36, height: 36, borderRadius: 10 }}>
+                  <FileText size={18} />
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
+                  <h3 className="pdf-preview-modal-title" title={viewingFile.name}>
+                    {viewingFile.name}
+                  </h3>
+                  <div className="pdf-preview-modal-subtitle">
+                    <span>{formatBytes(viewingFile.size)}</span>
+                    {viewingFile.pageCount && (
+                      <>
+                        <span>•</span>
+                        <span>{viewingFile.pageCount} {viewingFile.pageCount === 1 ? 'page' : 'pages'}</span>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="pdf-preview-header-actions">
+                <button
+                  type="button"
+                  className="action-btn-sm"
+                  onClick={() => window.open(viewingFile.blobUrl, '_blank', 'noopener,noreferrer')}
+                  title="Open in a separate browser tab"
+                >
+                  <ExternalLink size={14} />
+                  <span>Open in Tab</span>
+                </button>
+                <button
+                  type="button"
+                  className="action-btn-sm"
+                  onClick={handleCloseViewer}
+                  title="Close viewer (Esc)"
+                >
+                  <X size={15} />
+                  <span>Close</span>
+                </button>
+              </div>
+            </div>
+
+            <div className="pdf-preview-modal-body">
+              <iframe
+                src={`${viewingFile.blobUrl}#toolbar=1&navpanes=0`}
+                title={`Preview of ${viewingFile.name}`}
+                className="pdf-preview-iframe"
+              />
+            </div>
           </div>
         </div>
       )}
