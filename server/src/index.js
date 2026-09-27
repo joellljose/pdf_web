@@ -34,7 +34,25 @@ app.get('/api/health', (req, res) => {
 app.use('/api/tools', mergeRoutes);
 app.use('/api/pdf', mergeRoutes); // Alias for convenience
 
-// 404 Handler
+// Serve client static build in production if available
+import path from 'path';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const clientDistPath = path.resolve(__dirname, '../../client/dist');
+
+if (fs.existsSync(clientDistPath)) {
+  console.log(`📦 Serving production frontend bundle from ${clientDistPath}`);
+  app.use(express.static(clientDistPath));
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api')) return next();
+    res.sendFile(path.join(clientDistPath, 'index.html'));
+  });
+}
+
+// 404 Handler for unhandled API routes
 app.use((req, res, next) => {
   res.status(404).json({
     success: false,
