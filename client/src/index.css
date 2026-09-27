@@ -1741,6 +1741,155 @@ html, body {
   box-shadow: none;
 }
 
+/* ==========================================================================
+   Protect PDF Studio Styles
+   ========================================================================== */
+.protect-form-card {
+  background: var(--bg-surface-glass);
+  border: 1px solid var(--border-subtle);
+  border-radius: 24px;
+  padding: 2.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  max-width: 680px;
+  margin: 0 auto;
+  backdrop-filter: blur(16px);
+  box-shadow: var(--shadow-elevated);
+}
+
+.protect-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.password-input-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.password-icon-left {
+  position: absolute;
+  left: 1rem;
+  color: #64748b;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+}
+
+.password-text-input {
+  width: 100%;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  padding: 0.85rem 3rem 0.85rem 2.75rem;
+  color: #fff;
+  font-family: var(--font-sans);
+  font-size: 0.95rem;
+  outline: none;
+  transition: all var(--trans-fast);
+}
+
+.password-text-input:focus {
+  border-color: #10b981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+}
+
+.password-toggle-btn {
+  position: absolute;
+  right: 1rem;
+  background: none;
+  border: none;
+  color: #64748b;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  padding: 4px;
+  transition: color var(--trans-fast);
+}
+
+.password-toggle-btn:hover {
+  color: #cbd5e1;
+}
+
+.strength-meter-box {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 0.25rem;
+}
+
+.strength-meter-bar {
+  display: flex;
+  gap: 6px;
+  height: 5px;
+  width: 100%;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.strength-segment {
+  flex: 1;
+  height: 100%;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.08);
+  transition: background 0.3s;
+}
+
+.strength-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-align: right;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.security-notice-box {
+  background: rgba(16, 185, 129, 0.06);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  border-radius: 14px;
+  padding: 1.1rem 1.25rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+  font-size: 0.825rem;
+  color: #cbd5e1;
+  line-height: 1.5;
+}
+
+.protect-action-cta-btn {
+  background: linear-gradient(135deg, #10b981 0%, #059669 50%, #047857 100%);
+  color: #fff;
+  border: none;
+  font-family: var(--font-sans);
+  font-size: 1.05rem;
+  font-weight: 800;
+  padding: 1rem 2.25rem;
+  border-radius: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  box-shadow: 0 4px 25px rgba(16, 185, 129, 0.45);
+  transition: all var(--trans-smooth);
+}
+
+.protect-action-cta-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(16, 185, 129, 0.65);
+}
+
+.protect-action-cta-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
 /* Responsive Breakpoints */
 @media (max-width: 768px) {
   .main-content {
@@ -1760,7 +1909,7 @@ html, body {
     align-items: stretch;
   }
 
-  .merge-action-cta-btn, .split-action-cta-btn {
+  .merge-action-cta-btn, .split-action-cta-btn, .protect-action-cta-btn {
     width: 100%;
     justify-content: center;
   }

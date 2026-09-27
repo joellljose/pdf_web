@@ -10,6 +10,7 @@
     "build": "echo Server ready"
   },
   "dependencies": {
+    "@pdfsmaller/pdf-encrypt-lite": "^1.2.0",
     "archiver": "^8.0.0",
     "cors": "^2.8.5",
     "express": "^4.21.2",

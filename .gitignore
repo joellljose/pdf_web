@@ -16,8 +16,8 @@ yarn-error.log*
 .env
 .env.local
 .env.*.local
-test_samples/result_*.pdf
-test_samples/contract_*.pdf
+test_samples/*.pdf
+*/test_samples/*.pdf
 
 # Editor & OS files
 .DS_Store

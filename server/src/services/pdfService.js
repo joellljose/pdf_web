@@ -1,5 +1,6 @@
 import { PDFDocument } from 'pdf-lib';
 import JSZip from 'jszip';
+import { encryptPDF, AlreadyEncryptedError } from '@pdfsmaller/pdf-encrypt-lite';
 
 /**
  * Helper to parse a page range string (e.g. "1, 3, 5-8") into an array of 0-indexed page numbers.
@@ -202,4 +203,43 @@ export class PdfService {
     
     throw new Error('Invalid split mode. Must be "extract" or "split".');
   }
+
+  /**
+   * Encrypts a PDF buffer with a user password
+   * @param {Buffer} buffer - Original PDF buffer
+   * @param {string} password - Password to protect the document
+   * @param {Object} options - Additional options (outputFilename)
+   * @returns {Promise<{ buffer: Uint8Array, finalSize: number, totalPages: number }>}
+   */
+  static async protectPdf(buffer, password, options = {}) {
+    if (!password || typeof password !== 'string' || password.trim().length === 0) {
+      throw new Error('A valid password is required to protect the PDF document.');
+    }
+
+    let totalPages = 1;
+    try {
+      const doc = await PDFDocument.load(buffer, { ignoreEncryption: false });
+      totalPages = doc.getPageCount();
+    } catch (err) {
+      if (err.message && err.message.toLowerCase().includes('password')) {
+        throw new Error('This PDF document is already password protected.');
+      }
+      throw new Error(`Failed to read PDF: ${err.message}`);
+    }
+
+    try {
+      const encryptedBytes = await encryptPDF(buffer, password.trim());
+      return {
+        buffer: encryptedBytes,
+        finalSize: encryptedBytes.length,
+        totalPages
+      };
+    } catch (err) {
+      if (err instanceof AlreadyEncryptedError || err.message?.toLowerCase().includes('already encrypted')) {
+        throw new Error('This PDF document is already encrypted.');
+      }
+      throw new Error(`Failed to encrypt document: ${err.message}`);
+    }
+  }
 }
+

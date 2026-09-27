@@ -63,14 +63,14 @@ export const TOOLS = [
   {
     id: 'protect-pdf',
     title: 'Protect PDF',
-    badge: 'Coming Soon',
-    badgeType: 'coming-soon',
+    badge: 'Active',
+    badgeType: 'active',
     iconName: 'Lock',
     accentColor: '#10b981',
-    description: 'Encrypt your PDF documents with AES-256 passwords and restrict permissions.',
+    description: 'Encrypt your PDF documents with custom passwords and prevent unauthorized access.',
     category: 'security',
-    isAvailable: false,
-    highlight: 'Bank-grade encryption'
+    isAvailable: true,
+    highlight: 'Standard 128-bit encryption'
   },
   {
     id: 'rotate-pdf',
