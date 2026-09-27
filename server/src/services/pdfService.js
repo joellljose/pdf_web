@@ -1,8 +1,5 @@
 import { PDFDocument } from 'pdf-lib';
-import { createRequire } from 'module';
-
-const require = createRequire(import.meta.url);
-const archiver = require('archiver');
+import JSZip from 'jszip';
 
 /**
  * Helper to parse a page range string (e.g. "1, 3, 5-8") into an array of 0-indexed page numbers.
@@ -37,17 +34,7 @@ function parseRanges(rangeStr, maxPages) {
   return Array.from(pages).sort((a, b) => a - b);
 }
 
-/**
- * Helper to convert an archiver stream into a Buffer
- */
-function streamToBuffer(archiveStream) {
-  return new Promise((resolve, reject) => {
-    const chunks = [];
-    archiveStream.on('data', chunk => chunks.push(chunk));
-    archiveStream.on('end', () => resolve(Buffer.concat(chunks)));
-    archiveStream.on('error', err => reject(err));
-  });
-}
+
 
 /**
  * Service to handle PDF operations using pdf-lib
@@ -188,8 +175,7 @@ export class PdfService {
       };
     } else if (mode === 'split') {
       // Create a ZIP containing a separate PDF for each extracted page
-      const archive = archiver('zip', { zlib: { level: 9 } });
-      const bufferPromise = streamToBuffer(archive);
+      const zip = new JSZip();
       
       for (let i = 0; i < targetIndices.length; i++) {
         const pageIndex = targetIndices[i];
@@ -200,11 +186,10 @@ export class PdfService {
         singlePdf.setTitle(`${cleanName} - Page ${pageIndex + 1}`);
         const singlePdfBytes = await singlePdf.save();
         
-        archive.append(Buffer.from(singlePdfBytes), { name: `${cleanName}_page_${pageIndex + 1}.pdf` });
+        zip.file(`${cleanName}_page_${pageIndex + 1}.pdf`, singlePdfBytes);
       }
       
-      archive.finalize();
-      const zipBuffer = await bufferPromise;
+      const zipBuffer = await zip.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE' });
       
       return {
         buffer: zipBuffer,

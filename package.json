@@ -1,0 +1,12 @@
+{
+  "name": "pdfcraft-studio",
+  "version": "1.0.0",
+  "description": "Modular PDF Manipulation Suite with Node.js and React",
+  "private": true,
+  "scripts": {
+    "server": "npm --prefix server run start",
+    "server:dev": "npm --prefix server run dev",
+    "client": "npm --prefix client run dev",
+    "install:all": "npm --prefix server install && npm --prefix client install"
+  }
+}

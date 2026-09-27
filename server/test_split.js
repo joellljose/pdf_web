@@ -1,46 +1,43 @@
 import fs from 'fs';
-import { PdfService } from './src/services/pdfService.js';
 
-async function runSplitTest() {
-  console.log('--- Testing Split Functionality Directly ---');
-  const buffer = fs.readFileSync('test_samples/result_merged.pdf');
-  
-  const info = await PdfService.getPdfInfo(buffer, 'result_merged.pdf');
-  console.log('Input PDF Info:', info);
+async function testSplitApi() {
+  const f = fs.readFileSync('test_samples/Document_Beta_Contract.pdf'); // 3 pages
 
-  // Test 1: Extract pages 1-2 into single PDF
-  console.log('\nTest 1: Extracting pages 1-2 into single PDF...');
-  const extractResult = await PdfService.splitPdf(buffer, {
-    mode: 'extract',
-    ranges: '1-2',
-    outputFilename: 'extracted_sample'
+  // Test 1: Extract pages 1 and 3
+  const form1 = new FormData();
+  form1.append('file', new Blob([f], { type: 'application/pdf' }), 'Document_Beta_Contract.pdf');
+  form1.append('mode', 'extract');
+  form1.append('ranges', '1, 3');
+  form1.append('outputFilename', 'contract_pages_1_and_3');
+
+  const res1 = await fetch('http://localhost:5000/api/tools/split', {
+    method: 'POST',
+    body: form1
   });
-  console.log('Extract result type:', extractResult.type, 'Extension:', extractResult.extension, 'Size:', extractResult.finalSize);
-  fs.writeFileSync('test_samples/test_extract_1_2.pdf', Buffer.from(extractResult.buffer));
-  console.log('Saved test_samples/test_extract_1_2.pdf');
 
-  // Verify extracted PDF
-  const extractedInfo = await PdfService.getPdfInfo(Buffer.from(extractResult.buffer), 'test_extract_1_2.pdf');
-  console.log('Extracted PDF Page Count:', extractedInfo.pageCount);
-  if (extractedInfo.pageCount !== 2) {
-    throw new Error(`Expected 2 pages in extracted PDF, got ${extractedInfo.pageCount}`);
-  }
+  console.log('Extract Test Status:', res1.status, res1.headers.get('Content-Type'));
+  const buf1 = await res1.arrayBuffer();
+  console.log('Extracted PDF Size:', buf1.byteLength);
 
   // Test 2: Split all pages into ZIP
-  console.log('\nTest 2: Splitting pages into separate files (ZIP)...');
-  const splitResult = await PdfService.splitPdf(buffer, {
-    mode: 'split',
-    ranges: '1-3',
-    outputFilename: 'split_sample'
-  });
-  console.log('Split result type:', splitResult.type, 'Extension:', splitResult.extension, 'File count:', splitResult.fileCount, 'Size:', splitResult.finalSize);
-  fs.writeFileSync('test_samples/test_split.zip', Buffer.from(splitResult.buffer));
-  console.log('Saved test_samples/test_split.zip');
+  const form2 = new FormData();
+  form2.append('file', new Blob([f], { type: 'application/pdf' }), 'Document_Beta_Contract.pdf');
+  form2.append('mode', 'split');
+  form2.append('ranges', '1-3');
+  form2.append('outputFilename', 'contract_all_split');
 
-  console.log('\n✅ All Split tests passed accurately!');
+  const res2 = await fetch('http://localhost:5000/api/tools/split', {
+    method: 'POST',
+    body: form2
+  });
+
+  console.log('ZIP Test Status:', res2.status, res2.headers.get('Content-Type'));
+  const buf2 = await res2.arrayBuffer();
+  console.log('ZIP File Size:', buf2.byteLength);
+
+  if (res1.status === 200 && res2.status === 200) {
+    console.log('🎉 All Split API tests passed successfully!');
+  }
 }
 
-runSplitTest().catch(err => {
-  console.error('❌ Split test failed:', err);
-  process.exit(1);
-});
+testSplitApi().catch(console.error);

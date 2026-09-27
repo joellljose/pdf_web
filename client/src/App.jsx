@@ -3,10 +3,11 @@ import { Header } from './components/Header';
 import { Footer } from './components/Footer';
 import { Dashboard } from './components/Dashboard';
 import { MergeStudio } from './components/MergeStudio';
+import { SplitStudio } from './components/SplitStudio';
 import { ToastContainer } from './components/Toast';
 
 export function App() {
-  const [activeTool, setActiveTool] = useState(null); // null (dashboard) | 'merge-pdf'
+  const [activeTool, setActiveTool] = useState(null); // null (dashboard) | 'merge-pdf' | 'split-pdf'
   const [toasts, setToasts] = useState([]);
 
   const showToast = ({ type = 'info', message, duration = 4000 }) => {
@@ -37,6 +38,11 @@ export function App() {
       <main className="main-content" id="main-content-region">
         {activeTool === 'merge-pdf' ? (
           <MergeStudio
+            onBackToDashboard={() => setActiveTool(null)}
+            onShowToast={showToast}
+          />
+        ) : activeTool === 'split-pdf' ? (
+          <SplitStudio
             onBackToDashboard={() => setActiveTool(null)}
             onShowToast={showToast}
           />
