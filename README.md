@@ -104,3 +104,9 @@ pdf_web/
 ## 🛡️ Security & Privacy
 - **Zero Permanent Storage**: Files are processed in volatile memory and never saved to the server disk.
 - **Header Inspection**: Strict validation of genuine `%PDF-` file magic bytes.
+
+---
+
+## 📜 License & Disclaimer
+This project is developed under the **WeCode** initiative as an open-architecture, privacy-preserving document suite. Released for developer, institutional, and general productivity use under the WeCode Open Platform Guidelines.
+
