@@ -5,10 +5,12 @@ import { Dashboard } from './components/Dashboard';
 import { MergeStudio } from './components/MergeStudio';
 import { SplitStudio } from './components/SplitStudio';
 import { ProtectStudio } from './components/ProtectStudio';
+import { RemovePagesStudio } from './components/RemovePagesStudio';
+import { ReorderPagesStudio } from './components/ReorderPagesStudio';
 import { ToastContainer } from './components/Toast';
 
 export function App() {
-  const [activeTool, setActiveTool] = useState(null); // null (dashboard) | 'merge-pdf' | 'split-pdf' | 'protect-pdf'
+  const [activeTool, setActiveTool] = useState(null); // null (dashboard) | 'merge-pdf' | 'split-pdf' | 'protect-pdf' | 'remove-pages' | 'reorder-pages'
   const [toasts, setToasts] = useState([]);
 
   const showToast = ({ type = 'info', message, duration = 4000 }) => {
@@ -49,6 +51,16 @@ export function App() {
           />
         ) : activeTool === 'protect-pdf' ? (
           <ProtectStudio
+            onBackToDashboard={() => setActiveTool(null)}
+            onShowToast={showToast}
+          />
+        ) : activeTool === 'remove-pages' ? (
+          <RemovePagesStudio
+            onBackToDashboard={() => setActiveTool(null)}
+            onShowToast={showToast}
+          />
+        ) : activeTool === 'reorder-pages' ? (
+          <ReorderPagesStudio
             onBackToDashboard={() => setActiveTool(null)}
             onShowToast={showToast}
           />

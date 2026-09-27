@@ -241,5 +241,128 @@ export class PdfService {
       throw new Error(`Failed to encrypt document: ${err.message}`);
     }
   }
+
+  /**
+   * Removes specific pages from a PDF document
+   * @param {Buffer} buffer - Original PDF buffer
+   * @param {string | number[]} pagesToRemove - 1-indexed pages or range string to delete
+   * @param {Object} options - outputFilename, title
+   * @returns {Promise<{ buffer: Uint8Array, finalSize: number, remainingPages: number, removedPagesCount: number }>}
+   */
+  static async removePages(buffer, pagesToRemove, options = {}) {
+    let srcDoc;
+    try {
+      srcDoc = await PDFDocument.load(buffer, { ignoreEncryption: false });
+    } catch (err) {
+      if (err.message && err.message.toLowerCase().includes('password')) {
+        throw new Error('This PDF is password protected. Please unlock it before removing pages.');
+      }
+      throw new Error(`Failed to load PDF: ${err.message}`);
+    }
+
+    const totalPages = srcDoc.getPageCount();
+    let toRemoveIndices = [];
+
+    if (typeof pagesToRemove === 'string') {
+      toRemoveIndices = parseRanges(pagesToRemove, totalPages);
+    } else if (Array.isArray(pagesToRemove)) {
+      toRemoveIndices = pagesToRemove.map(p => Number(p) - 1).filter(p => p >= 0 && p < totalPages);
+    }
+
+    const removeSet = new Set(toRemoveIndices);
+    if (removeSet.size === 0) {
+      throw new Error('No valid pages selected for removal.');
+    }
+
+    if (removeSet.size >= totalPages) {
+      throw new Error('Cannot remove all pages from the document. At least one page must remain.');
+    }
+
+    const newPdf = await PDFDocument.create();
+    const keepIndices = [];
+    for (let i = 0; i < totalPages; i++) {
+      if (!removeSet.has(i)) {
+        keepIndices.push(i);
+      }
+    }
+
+    const copiedPages = await newPdf.copyPages(srcDoc, keepIndices);
+    for (const page of copiedPages) {
+      newPdf.addPage(page);
+    }
+
+    const cleanTitle = (options.outputFilename || 'document_pages_removed').replace(/\.pdf$/i, '');
+    newPdf.setTitle(cleanTitle);
+    newPdf.setProducer('PDF Studio Platform');
+
+    const newPdfBytes = await newPdf.save();
+
+    return {
+      buffer: newPdfBytes,
+      finalSize: newPdfBytes.length,
+      remainingPages: keepIndices.length,
+      removedPagesCount: removeSet.size
+    };
+  }
+
+  /**
+   * Reorders pages in a PDF document according to a specified sequence
+   * @param {Buffer} buffer - Original PDF buffer
+   * @param {number[] | string} pageOrder - Array or comma-separated string of 1-indexed page numbers in desired order
+   * @param {Object} options - outputFilename
+   * @returns {Promise<{ buffer: Uint8Array, finalSize: number, totalPages: number }>}
+   */
+  static async reorderPages(buffer, pageOrder, options = {}) {
+    let srcDoc;
+    try {
+      srcDoc = await PDFDocument.load(buffer, { ignoreEncryption: false });
+    } catch (err) {
+      if (err.message && err.message.toLowerCase().includes('password')) {
+        throw new Error('This PDF is password protected. Please unlock it before reordering pages.');
+      }
+      throw new Error(`Failed to load PDF: ${err.message}`);
+    }
+
+    const totalPages = srcDoc.getPageCount();
+    let orderArray = [];
+
+    if (typeof pageOrder === 'string') {
+      orderArray = pageOrder.split(',').map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n));
+    } else if (Array.isArray(pageOrder)) {
+      orderArray = pageOrder.map(n => Number(n)).filter(n => !isNaN(n));
+    }
+
+    if (orderArray.length === 0) {
+      throw new Error('Please specify a valid page order.');
+    }
+
+    const validZeroIndices = [];
+    for (const p of orderArray) {
+      if (p < 1 || p > totalPages) {
+        throw new Error(`Invalid page number ${p}. Document only has ${totalPages} pages.`);
+      }
+      validZeroIndices.push(p - 1);
+    }
+
+    const newPdf = await PDFDocument.create();
+    const copiedPages = await newPdf.copyPages(srcDoc, validZeroIndices);
+
+    for (const page of copiedPages) {
+      newPdf.addPage(page);
+    }
+
+    const cleanTitle = (options.outputFilename || 'reordered_document').replace(/\.pdf$/i, '');
+    newPdf.setTitle(cleanTitle);
+    newPdf.setProducer('PDF Studio Platform');
+
+    const newPdfBytes = await newPdf.save();
+
+    return {
+      buffer: newPdfBytes,
+      finalSize: newPdfBytes.length,
+      totalPages: validZeroIndices.length
+    };
+  }
 }
+
 

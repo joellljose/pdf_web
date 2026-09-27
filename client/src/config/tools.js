@@ -37,6 +37,30 @@ export const TOOLS = [
     highlight: 'Range & single-page extraction'
   },
   {
+    id: 'remove-pages',
+    title: 'Remove Pages',
+    badge: 'Active',
+    badgeType: 'active',
+    iconName: 'Trash2',
+    accentColor: '#f43f5e',
+    description: 'Delete unwanted, duplicate, or blank pages from your PDF document easily.',
+    category: 'organize',
+    isAvailable: true,
+    highlight: 'Visual page deletion'
+  },
+  {
+    id: 'reorder-pages',
+    title: 'Reorder Pages',
+    badge: 'Active',
+    badgeType: 'active',
+    iconName: 'ArrowUpDown',
+    accentColor: '#3b82f6',
+    description: 'Rearrange the sequence of pages in your PDF with visual drag-and-drop.',
+    category: 'organize',
+    isAvailable: true,
+    highlight: 'Drag & drop page sorter'
+  },
+  {
     id: 'compress-pdf',
     title: 'Compress PDF',
     badge: 'Coming Soon',

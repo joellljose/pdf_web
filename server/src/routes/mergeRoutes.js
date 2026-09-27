@@ -3,6 +3,8 @@ import multer from 'multer';
 import { MergeController } from '../controllers/mergeController.js';
 import { SplitController } from '../controllers/splitController.js';
 import { ProtectController } from '../controllers/protectController.js';
+import { RemovePagesController } from '../controllers/removePagesController.js';
+import { ReorderPagesController } from '../controllers/reorderPagesController.js';
 
 const router = express.Router();
 
@@ -31,6 +33,12 @@ router.post('/split', upload.single('file'), SplitController.split);
 
 // Protect endpoint
 router.post('/protect', upload.single('file'), ProtectController.protect);
+
+// Remove Pages endpoint
+router.post('/remove-pages', upload.single('file'), RemovePagesController.removePages);
+
+// Reorder Pages endpoint
+router.post('/reorder-pages', upload.single('file'), ReorderPagesController.reorderPages);
 
 // Info endpoint for single file
 router.post('/info', upload.single('file'), MergeController.getInfo);
