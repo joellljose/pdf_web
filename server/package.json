@@ -13,11 +13,13 @@
     "@pdfsmaller/pdf-encrypt-lite": "^1.2.0",
     "archiver": "^8.0.0",
     "cors": "^2.8.5",
+    "docx": "^9.7.2",
     "express": "^4.21.2",
     "jszip": "^3.10.2",
     "morgan": "^1.10.0",
     "multer": "^1.4.5-lts.1",
     "pdf-lib": "^1.17.1",
+    "pdf-parse": "^2.4.5",
     "uuid": "^10.0.0"
   },
   "devDependencies": {

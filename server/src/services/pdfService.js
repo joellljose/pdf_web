@@ -1,6 +1,21 @@
 import { PDFDocument } from 'pdf-lib';
 import JSZip from 'jszip';
 import { encryptPDF, AlreadyEncryptedError } from '@pdfsmaller/pdf-encrypt-lite';
+import { PDFParse } from 'pdf-parse';
+import {
+  Document,
+  Packer,
+  Paragraph,
+  TextRun,
+  HeadingLevel,
+  AlignmentType,
+  BorderStyle,
+  TableRow,
+  TableCell,
+  Table,
+  WidthType,
+  ShadingType
+} from 'docx';
 
 /**
  * Helper to parse a page range string (e.g. "1, 3, 5-8") into an array of 0-indexed page numbers.
@@ -363,6 +378,238 @@ export class PdfService {
       totalPages: validZeroIndices.length
     };
   }
+
+  /**
+   * Converts a PDF buffer to a Word (.docx) document
+   * @param {Buffer} buffer - Original PDF buffer
+   * @param {Object} options - { outputFilename, originalname }
+   * @returns {Promise<{ buffer: Buffer, finalSize: number, totalPages: number, wordCount: number }>}
+   */
+  static async convertPdfToWord(buffer, options = {}) {
+    let textResult;
+    let infoResult;
+    try {
+      const parser = new PDFParse({ data: buffer });
+      textResult = await parser.getText();
+      infoResult = await parser.getInfo();
+    } catch (err) {
+      if (err.message && err.message.toLowerCase().includes('password')) {
+        throw new Error('This PDF is password protected. Please unlock it before converting.');
+      }
+      throw new Error(`Failed to parse PDF: ${err.message}`);
+    }
+
+    const rawText = textResult.text || '';
+    const totalPages = textResult.total || 1;
+    const pdfInfo = infoResult.info || {};
+
+    // 2. Split the raw text into paragraphs (split on blank lines or page breaks)
+    const lines = rawText.split(/\r?\n/);
+    const paragraphs = [];
+    let currentBlock = [];
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (trimmed === '') {
+        if (currentBlock.length > 0) {
+          paragraphs.push(currentBlock.join(' '));
+          currentBlock = [];
+        }
+      } else {
+        currentBlock.push(trimmed);
+      }
+    }
+    if (currentBlock.length > 0) {
+      paragraphs.push(currentBlock.join(' '));
+    }
+
+    const wordCount = rawText.split(/\s+/).filter(Boolean).length;
+
+    const docTitle = pdfInfo.Title || options.outputFilename || options.originalname?.replace(/\.pdf$/i, '') || 'Converted Document';
+    const docAuthor = pdfInfo.Author || '';
+    const now = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+
+    // 3. Build DOCX sections
+    const docChildren = [];
+
+    // Title
+    docChildren.push(
+      new Paragraph({
+        text: docTitle,
+        heading: HeadingLevel.TITLE,
+        alignment: AlignmentType.CENTER,
+        spacing: { after: 200 }
+      })
+    );
+
+    // Author if available
+    if (docAuthor) {
+      docChildren.push(
+        new Paragraph({
+          alignment: AlignmentType.CENTER,
+          spacing: { after: 100 },
+          children: [
+            new TextRun({
+              text: `Author: ${docAuthor}`,
+              italics: true,
+              size: 22,
+              color: '555555'
+            })
+          ]
+        })
+      );
+    }
+
+    // Conversion metadata
+    docChildren.push(
+      new Paragraph({
+        alignment: AlignmentType.CENTER,
+        spacing: { after: 400 },
+        children: [
+          new TextRun({
+            text: `Converted from PDF on ${now}  •  ${totalPages} page${totalPages !== 1 ? 's' : ''}  •  ${wordCount.toLocaleString()} words`,
+            size: 18,
+            color: '888888'
+          })
+        ]
+      })
+    );
+
+    // Horizontal rule (simulated by a paragraph with bottom border)
+    docChildren.push(
+      new Paragraph({
+        spacing: { after: 400 },
+        border: {
+          bottom: {
+            color: 'CCCCCC',
+            space: 1,
+            style: BorderStyle.SINGLE,
+            size: 6
+          }
+        }
+      })
+    );
+
+    // Body content
+    if (paragraphs.length === 0) {
+      docChildren.push(
+        new Paragraph({
+          spacing: { after: 200 },
+          children: [
+            new TextRun({
+              text: '(No extractable text content found in this PDF. The document may contain scanned images or non-selectable text.)',
+              italics: true,
+              color: '888888',
+              size: 22
+            })
+          ]
+        })
+      );
+    } else {
+      for (const para of paragraphs) {
+        if (!para.trim()) continue;
+
+        // Heuristic: if line is short (≤80 chars) and title-cased, treat as a section heading
+        const isLikelyHeading =
+          para.length <= 80 &&
+          para.length > 2 &&
+          !/[.,:;!?]$/.test(para) &&
+          /^[A-Z]/.test(para) &&
+          para.split(' ').filter(Boolean).length <= 10;
+
+        if (isLikelyHeading) {
+          docChildren.push(
+            new Paragraph({
+              text: para,
+              heading: HeadingLevel.HEADING_2,
+              spacing: { before: 300, after: 120 }
+            })
+          );
+        } else {
+          docChildren.push(
+            new Paragraph({
+              spacing: { after: 160 },
+              children: [
+                new TextRun({
+                  text: para,
+                  size: 24,
+                  font: 'Calibri'
+                })
+              ]
+            })
+          );
+        }
+      }
+    }
+
+    // Footer note
+    docChildren.push(
+      new Paragraph({
+        spacing: { before: 600 },
+        border: {
+          top: {
+            color: 'EEEEEE',
+            space: 1,
+            style: BorderStyle.SINGLE,
+            size: 4
+          }
+        },
+        children: [
+          new TextRun({
+            text: `Converted by PDF Studio Platform  •  ${totalPages} page(s)  •  ${wordCount.toLocaleString()} words extracted`,
+            size: 16,
+            color: 'AAAAAA',
+            italics: true
+          })
+        ]
+      })
+    );
+
+    // 4. Create and pack the document
+    const doc = new Document({
+      creator: 'PDF Studio Platform',
+      description: `Converted from ${options.originalname || 'PDF document'}`,
+      title: docTitle,
+      styles: {
+        default: {
+          document: {
+            run: {
+              font: 'Calibri',
+              size: 24
+            },
+            paragraph: {
+              spacing: { line: 276 }
+            }
+          }
+        }
+      },
+      sections: [
+        {
+          properties: {
+            page: {
+              margin: {
+                top: 1440,
+                right: 1440,
+                bottom: 1440,
+                left: 1440
+              }
+            }
+          },
+          children: docChildren
+        }
+      ]
+    });
+
+    const docxBuffer = await Packer.toBuffer(doc);
+
+    return {
+      buffer: docxBuffer,
+      finalSize: docxBuffer.length,
+      totalPages,
+      wordCount
+    };
+  }
 }
+
 
 

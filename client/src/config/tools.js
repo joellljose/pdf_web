@@ -73,6 +73,18 @@ export const TOOLS = [
     highlight: 'Up to 80% size reduction'
   },
   {
+    id: 'pdf-to-word',
+    title: 'PDF to Word',
+    badge: 'Active',
+    badgeType: 'active',
+    iconName: 'FileWord',
+    accentColor: '#2563eb',
+    description: 'Convert any PDF into an editable Microsoft Word (.docx) document with preserved structure.',
+    category: 'convert',
+    isAvailable: true,
+    highlight: 'Text extraction & DOCX export'
+  },
+  {
     id: 'pdf-to-img',
     title: 'PDF to Image',
     badge: 'Coming Soon',

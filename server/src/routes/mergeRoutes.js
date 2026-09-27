@@ -5,6 +5,7 @@ import { SplitController } from '../controllers/splitController.js';
 import { ProtectController } from '../controllers/protectController.js';
 import { RemovePagesController } from '../controllers/removePagesController.js';
 import { ReorderPagesController } from '../controllers/reorderPagesController.js';
+import { PdfToWordController } from '../controllers/pdfToWordController.js';
 
 const router = express.Router();
 
@@ -39,6 +40,9 @@ router.post('/remove-pages', upload.single('file'), RemovePagesController.remove
 
 // Reorder Pages endpoint
 router.post('/reorder-pages', upload.single('file'), ReorderPagesController.reorderPages);
+
+// PDF to Word (DOCX) conversion endpoint
+router.post('/pdf-to-word', upload.single('file'), PdfToWordController.convert);
 
 // Info endpoint for single file
 router.post('/info', upload.single('file'), MergeController.getInfo);

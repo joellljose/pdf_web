@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { 
   Search, X, Files, Scissors, Minimize2, Image as ImageIcon, 
-  Lock, RotateCw, ArrowRight, ShieldCheck, Zap, Sparkles, Layers, CheckCircle, Trash2, ArrowUpDown 
+  Lock, RotateCw, ArrowRight, ShieldCheck, Zap, Sparkles, Layers, CheckCircle, Trash2, ArrowUpDown, FileText
 } from 'lucide-react';
 import { TOOLS, TOOL_CATEGORIES } from '../config/tools';
 
@@ -13,7 +13,8 @@ const ICON_MAP = {
   Lock: Lock,
   RotateCw: RotateCw,
   Trash2: Trash2,
-  ArrowUpDown: ArrowUpDown
+  ArrowUpDown: ArrowUpDown,
+  FileWord: FileText
 };
 
 export function Dashboard({ onSelectTool, onShowToast }) {
