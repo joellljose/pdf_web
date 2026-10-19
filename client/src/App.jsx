@@ -8,10 +8,13 @@ import { ProtectStudio } from './components/ProtectStudio';
 import { RemovePagesStudio } from './components/RemovePagesStudio';
 import { ReorderPagesStudio } from './components/ReorderPagesStudio';
 import { PdfToWordStudio } from './components/PdfToWordStudio';
+import { CompressStudio } from './components/CompressStudio';
+import { PdfToImgStudio } from './components/PdfToImgStudio';
+import { ImgToPdfStudio } from './components/ImgToPdfStudio';
 import { ToastContainer } from './components/Toast';
 
 export function App() {
-  const [activeTool, setActiveTool] = useState(null); // null (dashboard) | 'merge-pdf' | 'split-pdf' | 'protect-pdf' | 'remove-pages' | 'reorder-pages' | 'pdf-to-word'
+  const [activeTool, setActiveTool] = useState(null); // null (dashboard) | 'merge-pdf' | 'split-pdf' | 'protect-pdf' | 'remove-pages' | 'reorder-pages' | 'pdf-to-word' | 'compress-pdf' | 'pdf-to-img' | 'img-to-pdf'
   const [toasts, setToasts] = useState([]);
 
   const showToast = ({ type = 'info', message, duration = 4000 }) => {
@@ -69,6 +72,21 @@ export function App() {
           />
         ) : activeTool === 'pdf-to-word' ? (
           <PdfToWordStudio
+            onBackToDashboard={() => setActiveTool(null)}
+            onShowToast={showToast}
+          />
+        ) : activeTool === 'compress-pdf' ? (
+          <CompressStudio
+            onBackToDashboard={() => setActiveTool(null)}
+            onShowToast={showToast}
+          />
+        ) : activeTool === 'pdf-to-img' ? (
+          <PdfToImgStudio
+            onBackToDashboard={() => setActiveTool(null)}
+            onShowToast={showToast}
+          />
+        ) : activeTool === 'img-to-pdf' ? (
+          <ImgToPdfStudio
             onBackToDashboard={() => setActiveTool(null)}
             onShowToast={showToast}
           />

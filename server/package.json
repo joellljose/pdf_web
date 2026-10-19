@@ -12,6 +12,7 @@
   "dependencies": {
     "@pdfsmaller/pdf-encrypt-lite": "^1.2.0",
     "archiver": "^8.0.0",
+    "compress-pdf": "^0.6.3",
     "cors": "^2.8.5",
     "docx": "^9.7.2",
     "express": "^4.21.2",

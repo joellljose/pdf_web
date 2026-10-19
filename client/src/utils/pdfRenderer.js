@@ -55,3 +55,50 @@ export async function renderPageThumbnail(pdfDoc, pageNumber, canvas, scale = 0.
     }
   }
 }
+
+/**
+ * Renders a specific page at high resolution and returns Blob + DataURL
+ */
+export async function renderPageToImage(pdfDoc, pageNumber, options = {}) {
+  const { format = 'png', scale = 2.0, quality = 0.92 } = options;
+  const mimeType = format === 'jpeg' || format === 'jpg' ? 'image/jpeg' : 'image/png';
+
+  const page = await pdfDoc.getPage(pageNumber);
+  const viewport = page.getViewport({ scale });
+
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.floor(viewport.width);
+  canvas.height = Math.floor(viewport.height);
+
+  const ctx = canvas.getContext('2d');
+
+  // Fill pure white background for JPEGs to avoid black transparent areas
+  if (mimeType === 'image/jpeg') {
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  }
+
+  const renderContext = {
+    canvasContext: ctx,
+    viewport: viewport
+  };
+
+  await page.render(renderContext).promise;
+
+  return new Promise((resolve) => {
+    canvas.toBlob(
+      (blob) => {
+        resolve({
+          blob,
+          dataUrl: canvas.toDataURL(mimeType, quality),
+          width: canvas.width,
+          height: canvas.height,
+          pageNumber
+        });
+      },
+      mimeType,
+      quality
+    );
+  });
+}
+

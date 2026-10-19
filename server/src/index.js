@@ -11,7 +11,7 @@ app.use(cors({
   origin: '*',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-  exposedHeaders: ['Content-Disposition', 'X-Total-Pages', 'X-Merged-Files-Count', 'X-Original-Size', 'X-Final-Size']
+  exposedHeaders: ['Content-Disposition', 'X-Total-Pages', 'X-Merged-Files-Count', 'X-Original-Size', 'X-Final-Size', 'X-Savings-Percent']
 }));
 
 app.use(morgan('dev'));
@@ -26,7 +26,7 @@ app.get('/api/health', (req, res) => {
     uptime: process.uptime(),
     service: 'PDF Studio API Engine',
     version: '1.0.0',
-    supportedTools: ['merge-pdf', 'pdf-info']
+    supportedTools: ['merge-pdf', 'split-pdf', 'protect-pdf', 'remove-pages', 'reorder-pages', 'pdf-to-word', 'compress-pdf', 'pdf-to-img', 'image-to-pdf', 'pdf-info']
   });
 });
 

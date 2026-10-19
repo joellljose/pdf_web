@@ -6,10 +6,13 @@ import { ProtectController } from '../controllers/protectController.js';
 import { RemovePagesController } from '../controllers/removePagesController.js';
 import { ReorderPagesController } from '../controllers/reorderPagesController.js';
 import { PdfToWordController } from '../controllers/pdfToWordController.js';
+import { CompressController } from '../controllers/compressController.js';
+import { PdfToImgController } from '../controllers/pdfToImgController.js';
+import { ImgToPdfController } from '../controllers/imgToPdfController.js';
 
 const router = express.Router();
 
-// Configure multer memory storage
+// Configure multer memory storage for PDF documents
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: {
@@ -22,6 +25,22 @@ const upload = multer({
       cb(null, true);
     } else {
       cb(new Error(`File "${file.originalname}" is not a PDF.`));
+    }
+  }
+});
+
+// Configure multer memory storage for image files
+const uploadImages = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 50 * 1024 * 1024, // 50 MB per image
+    files: 50
+  },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith('image/') || /\.(jpe?g|png|webp|gif|bmp)$/i.test(file.originalname)) {
+      cb(null, true);
+    } else {
+      cb(new Error(`File "${file.originalname}" is not a supported image format.`));
     }
   }
 });
@@ -43,6 +62,15 @@ router.post('/reorder-pages', upload.single('file'), ReorderPagesController.reor
 
 // PDF to Word (DOCX) conversion endpoint
 router.post('/pdf-to-word', upload.single('file'), PdfToWordController.convert);
+
+// PDF Compress endpoint
+router.post('/compress', upload.single('file'), CompressController.compress);
+
+// PDF to Image endpoint
+router.post('/pdf-to-img', upload.single('file'), PdfToImgController.convert);
+
+// Image to PDF endpoint
+router.post('/image-to-pdf', uploadImages.array('images', 50), ImgToPdfController.convert);
 
 // Info endpoint for single file
 router.post('/info', upload.single('file'), MergeController.getInfo);

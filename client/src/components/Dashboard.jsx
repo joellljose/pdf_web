@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { 
-  Search, X, Files, Scissors, Minimize2, Image as ImageIcon, 
+  Search, X, Files, Scissors, Minimize2, Image as ImageIcon, Images,
   Lock, RotateCw, ArrowRight, ShieldCheck, Zap, Sparkles, Layers, CheckCircle, Trash2, ArrowUpDown, FileText
 } from 'lucide-react';
 import { TOOLS, TOOL_CATEGORIES } from '../config/tools';
@@ -10,6 +10,7 @@ const ICON_MAP = {
   Scissors: Scissors,
   Minimize2: Minimize2,
   Image: ImageIcon,
+  Images: Images,
   Lock: Lock,
   RotateCw: RotateCw,
   Trash2: Trash2,

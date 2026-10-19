@@ -63,14 +63,14 @@ export const TOOLS = [
   {
     id: 'compress-pdf',
     title: 'Compress PDF',
-    badge: 'Coming Soon',
-    badgeType: 'coming-soon',
+    badge: 'Active',
+    badgeType: 'active',
     iconName: 'Minimize2',
     accentColor: '#06b6d4',
     description: 'Reduce file size while optimizing for maximal PDF quality and fast web delivery.',
     category: 'optimize',
-    isAvailable: false,
-    highlight: 'Up to 80% size reduction'
+    isAvailable: true,
+    highlight: 'Multi-level compression & instant savings'
   },
   {
     id: 'pdf-to-word',
@@ -87,14 +87,26 @@ export const TOOLS = [
   {
     id: 'pdf-to-img',
     title: 'PDF to Image',
-    badge: 'Coming Soon',
-    badgeType: 'coming-soon',
+    badge: 'Active',
+    badgeType: 'active',
     iconName: 'Image',
     accentColor: '#f59e0b',
     description: 'Extract every page of your PDF into high-resolution JPG or PNG image files.',
     category: 'convert',
-    isAvailable: false,
-    highlight: 'Lossless quality export'
+    isAvailable: true,
+    highlight: 'Lossless quality & ZIP packaging'
+  },
+  {
+    id: 'img-to-pdf',
+    title: 'Image to PDF',
+    badge: 'Active',
+    badgeType: 'active',
+    iconName: 'Images',
+    accentColor: '#10b981',
+    description: 'Convert JPG, PNG, and WebP images into a beautifully formatted, unified PDF document.',
+    category: 'convert',
+    isAvailable: true,
+    highlight: 'Multi-image reorder & auto-fit'
   },
   {
     id: 'protect-pdf',

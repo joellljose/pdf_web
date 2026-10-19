@@ -1,7 +1,7 @@
 import React from 'react';
 import { 
   Layers, ShieldCheck, ArrowLeft, LayoutGrid,
-  Files, Scissors, Trash2, ArrowUpDown, FileText, Lock
+  Files, Scissors, Trash2, ArrowUpDown, FileText, Lock, Minimize2, Image as ImageIcon, Images
 } from 'lucide-react';
 import { TOOLS } from '../config/tools';
 
@@ -12,7 +12,10 @@ const NAV_ICON_MAP = {
   ArrowUpDown: ArrowUpDown,
   FileWord: FileText,
   FileText: FileText,
-  Lock: Lock
+  Lock: Lock,
+  Minimize2: Minimize2,
+  Image: ImageIcon,
+  Images: Images
 };
 
 export function Header({ activeTool, onSelectTool, onNavigateDashboard, onShowToast }) {

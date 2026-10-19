@@ -2,6 +2,15 @@ import { PDFDocument } from 'pdf-lib';
 import JSZip from 'jszip';
 import { encryptPDF, AlreadyEncryptedError } from '@pdfsmaller/pdf-encrypt-lite';
 import { PDFParse } from 'pdf-parse';
+import { compress, getBinPath } from 'compress-pdf';
+import { execFile } from 'child_process';
+import { promisify } from 'util';
+import fs from 'fs';
+import os from 'os';
+import path from 'path';
+import { randomUUID } from 'crypto';
+
+const execFileAsync = promisify(execFile);
 import {
   Document,
   Packer,
@@ -607,6 +616,313 @@ export class PdfService {
       finalSize: docxBuffer.length,
       totalPages,
       wordCount
+    };
+  }
+
+  /**
+   * Compresses a PDF buffer using Ghostscript and stream optimization
+   * @param {Buffer} buffer - Original PDF buffer
+   * @param {Object} options - { level: 'extreme' | 'recommended' | 'low', password?: string, outputFilename?: string }
+   * @returns {Promise<{ buffer: Buffer | Uint8Array, originalSize: number, finalSize: number, savingsPercent: number, totalPages: number }>}
+   */
+  static async compressPdf(buffer, options = {}) {
+    if (!buffer || buffer.length === 0) {
+      throw new Error('No PDF file provided for compression.');
+    }
+
+    const originalSize = buffer.length;
+    let totalPages = 1;
+
+    // Check page count and encryption
+    try {
+      const doc = await PDFDocument.load(buffer, { ignoreEncryption: false });
+      totalPages = doc.getPageCount();
+    } catch (err) {
+      if (err.message && err.message.toLowerCase().includes('password')) {
+        if (!options.password) {
+          throw new Error('This PDF is password protected. Please provide the document password to compress it.');
+        }
+      } else {
+        throw new Error(`Failed to read PDF document: ${err.message}`);
+      }
+    }
+
+    // Map level presets
+    const level = (options.level || 'recommended').toLowerCase();
+    const resolutionMap = {
+      extreme: { resolution: 'screen', imageQuality: 72 },
+      recommended: { resolution: 'ebook', imageQuality: 150 },
+      low: { resolution: 'printer', imageQuality: 300 },
+      screen: { resolution: 'screen', imageQuality: 72 },
+      ebook: { resolution: 'ebook', imageQuality: 150 },
+      printer: { resolution: 'printer', imageQuality: 300 },
+      prepress: { resolution: 'prepress', imageQuality: 300 }
+    };
+
+    const targetConfig = resolutionMap[level] || resolutionMap.recommended;
+
+    let compressedBuffer;
+    try {
+      const gsOpts = {
+        resolution: targetConfig.resolution,
+        imageQuality: targetConfig.imageQuality
+      };
+      if (options.password) {
+        gsOpts.pdfPassword = options.password;
+      }
+      const result = await compress(buffer, gsOpts);
+      compressedBuffer = Buffer.isBuffer(result) ? result : Buffer.from(result);
+    } catch (gsErr) {
+      console.warn('Ghostscript compression warning, falling back to stream optimization:', gsErr.message);
+      // Fallback to pdf-lib stream & object cleanup
+      try {
+        const doc = await PDFDocument.load(buffer, { ignoreEncryption: true });
+        const savedBytes = await doc.save({ useObjectStreams: true });
+        compressedBuffer = Buffer.from(savedBytes);
+      } catch (fallbackErr) {
+        throw new Error(`Compression failed: ${gsErr.message || fallbackErr.message}`);
+      }
+    }
+
+    let finalBuffer = compressedBuffer;
+    let finalSize = finalBuffer.length;
+
+    // If Ghostscript produced a larger file (common on tiny/minimal text PDFs), attempt pdf-lib stream optimization
+    if (finalSize > originalSize) {
+      try {
+        const doc = await PDFDocument.load(buffer, { ignoreEncryption: true });
+        const savedBytes = await doc.save({ useObjectStreams: true });
+        if (savedBytes.length < finalSize) {
+          finalBuffer = Buffer.from(savedBytes);
+          finalSize = finalBuffer.length;
+        }
+      } catch (_) {}
+
+      // If still larger than original, preserve the original so file never bloats
+      if (finalSize > originalSize) {
+        finalBuffer = buffer;
+        finalSize = originalSize;
+      }
+    }
+
+    const savingsPercent = Math.max(0, Math.round(((originalSize - finalSize) / originalSize) * 100));
+
+    return {
+      buffer: finalBuffer,
+      originalSize,
+      finalSize,
+      savingsPercent,
+      totalPages
+    };
+  }
+
+  /**
+   * Converts a PDF buffer into image files (PNG or JPEG) packaged as ZIP or single image
+   * @param {Buffer} buffer - PDF buffer
+   * @param {Object} options - { format: 'png' | 'jpeg', dpi: number, quality: number, outputFilename: string, asZip: boolean }
+   * @returns {Promise<{ buffer: Buffer, mimeType: string, extension: string, isZip: boolean, fileCount: number, filename: string }>}
+   */
+  static async pdfToImages(buffer, options = {}) {
+    if (!buffer || buffer.length === 0) {
+      throw new Error('No PDF file provided for conversion.');
+    }
+
+    const format = (options.format || 'png').toLowerCase().includes('jp') ? 'jpeg' : 'png';
+    const ext = format === 'jpeg' ? '.jpg' : '.png';
+    const mimeType = format === 'jpeg' ? 'image/jpeg' : 'image/png';
+    const dpi = Number(options.dpi) || 150;
+    const quality = Number(options.quality) || 90;
+    const cleanName = (options.outputFilename || 'converted_document').replace(/\.(pdf|zip|png|jpe?g)$/i, '');
+
+    const sessionId = randomUUID();
+    const tempDir = path.join(os.tmpdir(), `pdf2img_${sessionId}`);
+    const tempPdfPath = path.join(os.tmpdir(), `input_${sessionId}.pdf`);
+
+    await fs.promises.mkdir(tempDir, { recursive: true });
+    await fs.promises.writeFile(tempPdfPath, buffer);
+
+    try {
+      const gsBin = getBinPath(os.platform());
+      const device = format === 'jpeg' ? 'jpeg' : 'png16m';
+
+      const args = [
+        '-q',
+        '-dNOPAUSE',
+        '-dBATCH',
+        '-dSAFER',
+        `-sDEVICE=${device}`,
+        `-r${dpi}`,
+        '-dTextAlphaBits=4',
+        '-dGraphicsAlphaBits=4'
+      ];
+
+      if (format === 'jpeg') {
+        args.push(`-dJPEGQ=${quality}`);
+      }
+
+      const outPattern = path.join(tempDir, 'page_%03d' + ext);
+      args.push(`-sOutputFile=${outPattern}`);
+      args.push(tempPdfPath);
+
+      await execFileAsync(gsBin, args);
+
+      const files = (await fs.promises.readdir(tempDir))
+        .filter(f => f.endsWith(ext))
+        .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+
+      if (!files || files.length === 0) {
+        throw new Error('Failed to generate image files from the PDF.');
+      }
+
+      // If single page and asZip is not forced, return direct image
+      if (files.length === 1 && !options.asZip) {
+        const singleBuffer = await fs.promises.readFile(path.join(tempDir, files[0]));
+        return {
+          buffer: singleBuffer,
+          mimeType,
+          extension: ext,
+          isZip: false,
+          fileCount: 1,
+          filename: `${cleanName}_page_1${ext}`
+        };
+      }
+
+      // Pack into ZIP archive
+      const zip = new JSZip();
+      for (let i = 0; i < files.length; i++) {
+        const imgBuffer = await fs.promises.readFile(path.join(tempDir, files[i]));
+        const paddedIndex = String(i + 1).padStart(2, '0');
+        zip.file(`${cleanName}_page_${paddedIndex}${ext}`, imgBuffer);
+      }
+
+      const zipBuffer = await zip.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE' });
+
+      return {
+        buffer: zipBuffer,
+        mimeType: 'application/zip',
+        extension: '.zip',
+        isZip: true,
+        fileCount: files.length,
+        filename: `${cleanName}_images.zip`
+      };
+    } finally {
+      // Clean up temporary files
+      try {
+        await fs.promises.rm(tempDir, { recursive: true, force: true });
+        await fs.promises.unlink(tempPdfPath).catch(() => {});
+      } catch (_) {}
+    }
+  }
+
+  /**
+   * Converts multiple image buffers into a unified PDF document
+   * @param {Array<{ buffer: Buffer, mimetype: string, originalname: string }>} images
+   * @param {Object} options - { pageSize: 'fit' | 'a4' | 'letter', orientation: 'auto' | 'portrait' | 'landscape', margin: 'none' | 'small' | 'normal', outputFilename: string }
+   * @returns {Promise<{ buffer: Uint8Array, totalPages: number, finalSize: number, filename: string }>}
+   */
+  static async imageToPdf(images, options = {}) {
+    if (!images || images.length === 0) {
+      throw new Error('At least one image file is required.');
+    }
+
+    const pdfDoc = await PDFDocument.create();
+    const cleanName = (options.outputFilename || 'images_document').replace(/\.pdf$/i, '');
+    const pageSizeMode = (options.pageSize || 'fit').toLowerCase();
+    const orientationMode = (options.orientation || 'auto').toLowerCase();
+    const marginMode = (options.margin || 'none').toLowerCase();
+
+    const marginPt = marginMode === 'small' ? 18 : marginMode === 'normal' ? 36 : 0;
+
+    for (let i = 0; i < images.length; i++) {
+      const file = images[i];
+      let embeddedImg;
+
+      // Detect format by buffer signature or mimetype
+      const isPng = file.buffer[0] === 0x89 && file.buffer[1] === 0x50; // PNG magic bytes
+      const isJpg = file.buffer[0] === 0xFF && file.buffer[1] === 0xD8; // JPEG magic bytes
+
+      try {
+        if (isPng || file.mimetype === 'image/png' || file.originalname.toLowerCase().endsWith('.png')) {
+          embeddedImg = await pdfDoc.embedPng(file.buffer);
+        } else {
+          // Default to JPG embed
+          embeddedImg = await pdfDoc.embedJpg(file.buffer);
+        }
+      } catch (err) {
+        // If JPEG embed failed, attempt PNG embed and vice versa
+        try {
+          if (!isPng) {
+            embeddedImg = await pdfDoc.embedPng(file.buffer);
+          } else {
+            embeddedImg = await pdfDoc.embedJpg(file.buffer);
+          }
+        } catch (_) {
+          throw new Error(`Failed to decode image "${file.originalname}": ${err.message}. Please provide standard JPG or PNG images.`);
+        }
+      }
+
+      const imgW = embeddedImg.width;
+      const imgH = embeddedImg.height;
+
+      if (pageSizeMode === 'fit') {
+        // 1:1 Page matches image dimensions perfectly without borders
+        const page = pdfDoc.addPage([imgW, imgH]);
+        page.drawImage(embeddedImg, {
+          x: 0,
+          y: 0,
+          width: imgW,
+          height: imgH
+        });
+      } else {
+        // Standard A4 or Letter dimensions
+        const baseWidth = pageSizeMode === 'letter' ? 612.0 : 595.28;
+        const baseHeight = pageSizeMode === 'letter' ? 792.0 : 841.89;
+
+        let targetW = baseWidth;
+        let targetH = baseHeight;
+
+        if (orientationMode === 'landscape') {
+          targetW = baseHeight;
+          targetH = baseWidth;
+        } else if (orientationMode === 'auto') {
+          if (imgW > imgH) {
+            targetW = baseHeight;
+            targetH = baseWidth;
+          }
+        }
+
+        const availW = Math.max(10, targetW - 2 * marginPt);
+        const availH = Math.max(10, targetH - 2 * marginPt);
+
+        const scale = Math.min(availW / imgW, availH / imgH);
+        const drawW = imgW * scale;
+        const drawH = imgH * scale;
+
+        const drawX = marginPt + (availW - drawW) / 2;
+        const drawY = marginPt + (availH - drawH) / 2;
+
+        const page = pdfDoc.addPage([targetW, targetH]);
+        page.drawImage(embeddedImg, {
+          x: drawX,
+          y: drawY,
+          width: drawW,
+          height: drawH
+        });
+      }
+    }
+
+    pdfDoc.setTitle(cleanName);
+    pdfDoc.setProducer('PDF Studio Platform');
+    pdfDoc.setCreator('PDF Studio Image to PDF');
+    pdfDoc.setCreationDate(new Date());
+
+    const pdfBytes = await pdfDoc.save();
+
+    return {
+      buffer: pdfBytes,
+      totalPages: images.length,
+      finalSize: pdfBytes.length,
+      filename: `${cleanName}.pdf`
     };
   }
 }
